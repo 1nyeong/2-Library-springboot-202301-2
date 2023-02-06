@@ -43,7 +43,7 @@ class SearchApi {
     }
 
     getTotalCount() {
-        let response = null;
+        let responseData = null;
 
         $.ajax({
             async: false,
@@ -63,7 +63,7 @@ class SearchApi {
     }
 
     searchBook() {
-        let response = null;
+        let responseData = null;
 
         $.ajax({
             async: false,

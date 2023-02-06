@@ -34,14 +34,14 @@
         select
             bm.book_id as bookId,
             bm.book_code as bookCode,
-            bm.book_name ad bookName,
+            bm.book_name as bookName,
             bm.author,
             bm.publisher,
             bm.publication_date as publicationData,
             bm.category,
             bi.save_name as saveName,
             rd.rental_dtl_id as rentalDtlId,
-            rd.return_date ad returnData,
+            rd.return_date as returnData,
             rm.user_id as userId,
             lc.like_count as likeCount
         from
