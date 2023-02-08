@@ -2,13 +2,16 @@ window.onload = () => {
     HeaderService.getInstance().loadHeader();
 
     SearchService.getInstance().clearBookList();
-    SearchService.getInstance().loadSearchBook();
+    SearchService.getInstance().loadSearchBooks();
     SearchService.getInstance().loadCategories();
     SearchService.getInstance().setMaxPage();
     
     ComponentEvent.getInstance().addClickEventCategoryCheckboxs();
     ComponentEvent.getInstance().addScrollEventPaging();
     ComponentEvent.getInstance().addClickEventSearchButton();
+    
+    SearchService.getInstance().onLoadSearch();
+
 }
 
 let maxPage = 0;
@@ -59,13 +62,13 @@ class SearchApi {
             data: searchObj,
             dataType: "json",
             success: response => {
-                console.log(response);
                 responseData = response.data;
             },
             error: error => {
                 console.log(error);
             }
         })
+
         return responseData;
     }
 
@@ -79,13 +82,13 @@ class SearchApi {
             data: searchObj,
             dataType: "json",
             success: response => {
-                console.log(response);
                 responseData = response.data;
             },
             error: error => {
                 console.log(error);
             }
         })
+
         return responseData;
     }
 }
@@ -99,12 +102,26 @@ class SearchService {
         return this.#instance;
     }
 
-    setMaxPage(){
+    onLoadSearch() {
+        const URLSearch = new URLSearchParams(location.search);
+        if(URLSearch.has("searchValue")){
+            const searchValue = URLSearch.get("searchValue");
+            if(searchValue == "") {
+                return;
+            }
+            const searchInput = document.querySelector(".search-input");
+            searchInput.value = searchValue;
+            const searchButton = document.querySelector(".search-button");
+            searchButton.click();
+        }
+    }
 
+    setMaxPage() {
         const totalCount = SearchApi.getInstance().getTotalCount();
         maxPage = totalCount % 10 == 0 
             ? totalCount / 10 
             : Math.floor(totalCount / 10) + 1;
+
     }
 
     loadCategories() {
@@ -122,18 +139,24 @@ class SearchService {
         });
     }
 
-    clearBookList(){
+    clearBookList() {
         const contentFlex = document.querySelector(".content-flex");
         contentFlex.innerHTML = "";
     }
 
-    loadSearchBook(){
+    loadSearchBooks() {
         const responseData = SearchApi.getInstance().searchBook();
         const contentFlex = document.querySelector(".content-flex");
+        const principal = PrincipalApi.getInstance().getPrincipal();
+        const bookButtons = document.querySelectorAll(".book-buttons");
 
-        responseData.forEach(data =>{
+        const _bookButtons = document.querySelectorAll(".book-buttons");
+        const bookButtonsLength = _bookButtons == null ? 0 : _bookButtons.length;
+
+        console.log(responseData)
+        responseData.forEach((data, index) => {
             contentFlex.innerHTML += `
-                    <div class="info-container">
+                <div class="info-container">
                     <div class="book-desc">
                         <div class="img-container">
                             <img src="http://127.0.0.1:8000/image/book/${data.saveName != null ? data.saveName : "no_img.png"}" class="book-img">
@@ -149,15 +172,52 @@ class SearchService {
                         <div class="info-text book-publicationdate"><b>출판일: </b>${data.publicationDate}</div>
                         <div class="info-text book-category"><b>카테고리: </b>${data.category}</div>
                         <div class="book-buttons">
-                            <button type="button" class="rental-button">대여하기</button>
-                            <button type="button" class="like-button">추천</button>
+                            
                         </div>
                     </div>
                 </div>
             `;
+            const bookButtons = document.querySelectorAll(".book-buttons");
+            if(principal == null) {
+                if(data.rentalDtlId != 0 && data.returnDate == null){
+                    bookButtons[bookButtonsLength + index].innerHTML = `
+                        <button type="button" class="rental-button" disabled>대여중</button>
+                    `;
+                }else {
+                    bookButtons[bookButtonsLength + index].innerHTML = `
+                        <button type="button" class="rental-button" disabled>대여가능</button>
+                    `;
+                }
+
+                bookButtons[bookButtonsLength + index].innerHTML += `
+                    <button type="button" class="like-button" disabled>추천</button>
+                `;
+            }else {
+                if(data.rentalDtlId != 0 && data.returnDate == null && data.userId != principal.user.userId){
+                    bookButtons[bookButtonsLength + index].innerHTML = `
+                        <button type="button" class="rental-button" disabled>대여중</button>
+                    `;
+                }else if(data.rentalDtlId != 0 && data.returnDate == null && data.userId == principal.user.userId) {
+                    bookButtons[bookButtonsLength + index].innerHTML = `
+                        <button type="button" class="return-button">반납하기</button>
+                    `;
+                }else {
+                    bookButtons[bookButtonsLength + index].innerHTML = `
+                        <button type="button" class="rental-button">대여하기</button>
+                    `;
+                }
+                if(data.likeId != 0){
+                    bookButtons[bookButtonsLength + index].innerHTML += `
+                        <button type="button" class="dislike-button">추천취소</button>
+                    `;
+                }else {
+                    bookButtons[bookButtonsLength + index].innerHTML += `
+                        <button type="button" class="like-button">추천</button>
+                    `;
+                }
+            }
         })
     }
-    
 }
 
 class ComponentEvent {
@@ -185,37 +245,38 @@ class ComponentEvent {
         });
     }
 
-    addScrollEventPaging(){
+    addScrollEventPaging() {
         const html = document.querySelector("html");
         const body = document.querySelector("body");
-        
+
         body.onscroll = () => {
             const scrollPosition = body.offsetHeight - html.clientHeight - html.scrollTop;
 
-            if(scrollPosition < 250 && searchObj.page < maxPage){
+            if(scrollPosition < 250 && searchObj.page < maxPage) {
                 searchObj.page++;
-                SearchService.getInstance().loadSearchBook();
+                SearchService.getInstance().loadSearchBooks();
             }
         }
     }
 
-    addClickEventSearchButton(){
+    addClickEventSearchButton() {
         const searchButton = document.querySelector(".search-button");
         const searchInput = document.querySelector(".search-input");
+
         searchButton.onclick = () => {
             searchObj.searchValue = searchInput.value;
             searchObj.page = 1;
             window.scrollTo(0, 0);
             SearchService.getInstance().clearBookList();
             SearchService.getInstance().setMaxPage();
-            SearchService.getInstance().loadSearchBook();
+            SearchService.getInstance().loadSearchBooks();
         }
 
         searchInput.onkeyup = () => {
-            if(window.event.keycode = 13){
+            if(window.event.keyCode == 13) {
                 searchButton.click();
             }
         }
+        
     }
-
 }
