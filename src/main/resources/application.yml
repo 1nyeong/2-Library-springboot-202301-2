@@ -2,11 +2,20 @@ server:
   port: 8000
 
 spring:
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            clientId: 981412461752-ldcrldkm5trhajonr9csf2ivoe8do0mb.apps.googleusercontent.com
+            clientSecret: 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
+            scope:
+              - email
+              - profile
   servlet:
     multipart:
       max-file-size: 200MB
       max-request-size: 200MB
-
   mvc:
     static-path-pattern: /static/**
     pathmatch:
@@ -16,6 +25,7 @@ spring:
     url: jdbc:mysql://localhost:3306/library
     username: root
     password: 1q2w3e4r
+
 
 mybatis:
   mapper-locations:
